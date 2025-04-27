@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { recommendStack } from '@/lib/recommend';
-import { connectDB } from '@/services/db';
-import { Recommendation } from '@/services/recommendation';
+import { recommendStack } from '@/services/groqService';
 
 export async function POST(req: NextRequest) {
-  const { prompt } = await req.json();
-
   try {
+    const { prompt } = await req.json();
+
+    if (!prompt) {
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+    }
+
     const recommendation = await recommendStack(prompt);
 
-    await connectDB(); // connect MongoDB
-    await Recommendation.create({ prompt, recommendation }); // save to DB
-
     return NextResponse.json({ recommendation });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to get recommendation' }, { status: 500 });
+    
+  } catch (error: any) {
+    console.error('Error in POST /recommend:', error?.message || error);
+    return NextResponse.json({ error: error?.message || 'Failed to get recommendation' }, { status: 500 });
   }
 }
