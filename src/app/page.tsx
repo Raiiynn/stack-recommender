@@ -1,101 +1,93 @@
 'use client';
 
 import { useState } from 'react';
-import recommendStack from '@/services/groqService';
 import { motion } from 'framer-motion';
-import { Copy } from 'lucide-react'; // Icon copy
 
 export default function Home() {
-  const [userInput, setUserInput] = useState('');
+  const [prompt, setPrompt] = useState('');
   const [recommendation, setRecommendation] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setCopied(false);
+  const handleSubmit = async () => {
+    if (!prompt.trim()) return;
+
+    setIsLoading(true);
+    setRecommendation('');
+
     try {
-      const response = await recommendStack(userInput);
-      setRecommendation(response);
-    } catch (error) {
-      console.error('Error:', error);
-      setRecommendation('Oops! Ada masalah saat mendapatkan rekomendasi.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      const response = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
 
-  const handleCopy = async () => {
-    if (recommendation) {
-      await navigator.clipboard.writeText(recommendation);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Balik normal setelah 2 detik
+      const data = await response.json();
+      setRecommendation(data.recommendation || 'No recommendation found.');
+    } catch (error) {
+      setRecommendation('Error fetching recommendation.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <motion.h1 
-        className="text-4xl font-extrabold mb-8 text-center text-indigo-700"
-        initial={{ opacity: 0, y: -20 }}
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#3c1d91] to-[#1f0c5c] text-white p-4 sm:p-8">
+      <motion.h1
+        className="text-3xl sm:text-5xl leading-tight font-extrabold mb-8 sm:mb-10 text-center bg-clip-text text-transparent bg-gradient-to-r from-[#ff6bcb] to-[#ffc37d]"
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
       >
-        🚀 Stack Recommender
+        🚀 Raiiynn AI Project
       </motion.h1>
 
-      <motion.form 
-        onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8 space-y-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg sm:max-w-2xl mb-8 sm:mb-10">
         <input
           type="text"
-          placeholder="Contoh: Web untuk marketplace digital..."
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          className="w-full p-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-300 transition"
-          required
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+          placeholder="Enter your project idea or question..."
+          className="flex-1 p-3 sm:p-4 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
         />
         <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition disabled:bg-gray-400 flex justify-center items-center"
+          onClick={handleSubmit}
+          className="px-5 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-pink-500 hover:to-purple-500 rounded-lg text-white font-bold text-sm sm:text-base transition shadow-lg hover:shadow-pink-400/40"
         >
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-t-2 border-t-white border-white rounded-full animate-spin"></div>
-              Generating...
-            </div>
-          ) : (
-            'Get Recommendation'
-          )}
+          {isLoading ? 'Loading...' : 'Submit'}
         </button>
-      </motion.form>
+      </div>
 
       {recommendation && (
-        <motion.div 
-          className="mt-10 w-full max-w-lg bg-white rounded-2xl shadow-lg p-8 relative"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+        <motion.div
+          className="bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-lg sm:max-w-3xl prose prose-invert"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-indigo-600">🎯 Rekomendasi Stack</h2>
-            <button onClick={handleCopy} className="text-indigo-500 hover:text-indigo-700 transition">
-              <Copy size={20} />
-            </button>
-          </div>
-          <p className="text-gray-700 whitespace-pre-line">{recommendation}</p>
-
-          {copied && (
-            <div className="absolute top-2 right-2 bg-green-500 text-white text-sm px-2 py-1 rounded-lg">
-              Copied!
-            </div>
-          )}
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-purple-400">✨ Recommendation:</h2>
+          <div
+            dangerouslySetInnerHTML={{ __html: formatRecommendation(recommendation) }}
+            className="text-base sm:text-lg leading-relaxed"
+          />
         </motion.div>
       )}
     </main>
   );
+}
+
+function formatRecommendation(text: string) {
+  let formatted = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>')
+    .replace(/(\d+)\.\s+/g, '<br/><br/><strong>$1.</strong> ');
+
+  return formatted;
 }
